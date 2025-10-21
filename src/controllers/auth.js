@@ -1,13 +1,13 @@
 import { response } from "express";
-import pool from "./config/db.js";
+import pool from "../config/db.js";
 import bcrypt from "bcrypt";
-
+import { generarJWT } from "../helpers/jwt.js";
 //Inicio de sesión
 
-const loginUser = async (req, res = response) => {
-  const { user, password } = req.body;
+export const loginUser = async (req, res = response) => {
+  const { username, password } = req.body;
 
-  if (!user || !password) {
+  if (!username || !password) {
     return res.status(400).json({
       ok: false,
       msg: "El usuario y la contraseña son obligatorios",
@@ -18,7 +18,7 @@ const loginUser = async (req, res = response) => {
     // Realizar la consulta SQL para encontrar el usuario
     const [results] = await pool.query(
       "SELECT * FROM usuarios WHERE username = ?",
-      [user]
+      [username]
     );
     if (results.length === 0) {
       return res.status(404).json({
@@ -38,10 +38,13 @@ const loginUser = async (req, res = response) => {
       });
     }
 
+    // Generar JWT
+    const token = await generarJWT(usuario.username, usuario.role);
+
     //Login exitoso
     return res.json({
       ok: true,
-      msg: "Login exitoso",
+      token,
       user: {
         id: usuario.id,
         username: usuario.username,
@@ -57,11 +60,23 @@ const loginUser = async (req, res = response) => {
   }
 };
 
-//Actualizar contraseña
-const updatePassword = async (req, res = response) => {
-  const { user, newPassword } = req.body;
+export const revalidarToken = async (req, res = response) => {
+  const { username, role } = req;
 
-  if (!user || !newPassword) {
+  //Generar un nuevo JWT Y retornarlo en la peticion
+  const token = await generarJWT(username, role);
+
+  res.json({
+    ok: true,
+    token,
+  });
+};
+
+//Actualizar contraseña
+export const updatePassword = async (req, res = response) => {
+  const { username, newPassword } = req.body;
+
+  if (!username || !newPassword) {
     return res.status(400).json({
       ok: false,
       msg: "Usuario y nueva contraseña son obligatorios",
@@ -72,9 +87,9 @@ const updatePassword = async (req, res = response) => {
     //Verificar si existe el usuario
     const [results] = await pool.query(
       "SELECT * FROM usuarios WHERE username = ?",
-      [user]
+      [username]
     );
-    if (results.lenght === 0) {
+    if (results.length === 0) {
       return res.status(404).json({
         ok: false,
         msg: "usuario no encontrado",
@@ -86,11 +101,10 @@ const updatePassword = async (req, res = response) => {
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     //Actualizar contraseña en la BD
-    await pool.query(
-      "UPDATE usuarios SET password = ? WHERE username = ?",
-      [hashedPassword],
-      [user]
-    );
+    await pool.query("UPDATE usuarios SET password = ? WHERE username = ?", [
+      hashedPassword,
+      username,
+    ]);
 
     return res.json({
       ok: true,
@@ -103,9 +117,4 @@ const updatePassword = async (req, res = response) => {
       msg: "Error en el servidor",
     });
   }
-};
-
-module.exports = {
-  loginUser,
-  updatePassword,
 };
