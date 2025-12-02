@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import authRoutes from "./src/routes/authRoutes.js";
+import ventasRoutes from "./src/routes/ventasRoutes.js";
 
 //Crear el servidor de express
 const app = express();
@@ -17,6 +18,9 @@ app.use(express.json());
 
 // Inicio de sesión
 app.use("/api/auth", authRoutes);
+
+// Ventas
+app.use("/api", ventasRoutes);
 
 //Escuchar peticiones
 app.listen(process.env.PORT, () => {

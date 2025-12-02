@@ -1,11 +1,17 @@
 /**
  * Rutas de ventas
- * /api/ventas
+ * /api
  */
-const { Router } = require("express");
+import { Router } from "express";
+
 const router = Router();
-const { salesDriver } = require("../controllers/ventas");
 
-router.get("/sales", salesDriver);
+import { salesCards, salesDriver } from "../controllers/ventasController.js";
 
-module.exports = router;
+// Endpoint para obtener card de ventas de repartidores
+router.get("/sales/driver", salesDriver);
+
+// Endpoint para obtener cards de las ventas del despacho
+router.post("/sales/cards", salesCards);
+
+export default router;
