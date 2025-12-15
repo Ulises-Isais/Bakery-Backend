@@ -39,7 +39,12 @@ export const loginUser = async (req, res = response) => {
     }
 
     // Generar JWT
-    const token = await generarJWT(usuario.username, usuario.role);
+    const token = await generarJWT(
+      usuario.id,
+      usuario.username,
+      usuario.role,
+      usuario.turno
+    );
 
     //Login exitoso
     return res.json({
@@ -49,6 +54,7 @@ export const loginUser = async (req, res = response) => {
         id: usuario.id,
         username: usuario.username,
         role: usuario.role,
+        turno: usuario.turno,
       },
     });
   } catch (error) {
@@ -61,14 +67,15 @@ export const loginUser = async (req, res = response) => {
 };
 
 export const revalidarToken = async (req, res = response) => {
-  const { username, role } = req;
+  const { uid, username, role, turno } = req;
 
   //Generar un nuevo JWT Y retornarlo en la peticion
-  const token = await generarJWT(username, role);
+  const token = await generarJWT(uid, username, role, turno);
 
   res.json({
     ok: true,
     token,
+    user: { uid, username, role, turno },
   });
 };
 

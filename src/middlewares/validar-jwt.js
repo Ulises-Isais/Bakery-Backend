@@ -11,18 +11,20 @@ export const validarJWT = (req, res = response, next) => {
     });
   }
   try {
-    const { matricula, nombre } = jwt.verify(
+    const { uid, username, role, turno } = jwt.verify(
       token,
       process.env.SECRET_JWT_SEED
     );
-    req.matricula = matricula;
-    req.nombre = nombre;
+    req.uid;
+    req.username = username;
+    req.role = role;
+    req.turno = turno;
+
+    next();
   } catch (error) {
     return res.status(401).json({
       ok: false,
       msg: "Token no valido",
     });
   }
-
-  next();
 };

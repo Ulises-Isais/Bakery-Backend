@@ -1,10 +1,13 @@
 import { response } from "express";
 import pool from "../config/db.js";
+import { resolverTurno } from "../helpers/resolverTurno.js";
+import { normalizarCortePorTurno } from "../helpers/normalizarCorte.js";
 
 // Mostrar ventas totales del día
 export const salesCards = async (req, res = response) => {
   try {
-    const { fecha = "2025-09-12", turno = "mañana" } = req.body || {};
+    const turno = resolverTurno(req);
+    const { fecha = "2025-09-12" } = req.body || {};
 
     // Validar que venga la fecha
     if (!fecha) {
@@ -14,59 +17,98 @@ export const salesCards = async (req, res = response) => {
       });
     }
 
+    let query = `SELECT 
+      cc.turno,
+      c.nombre AS categoria,
+      cc.total_por_categoria
+      FROM corte_caja cc
+      JOIN categorias c on cc.id_categoria = c.id_categoria
+      WHERE cc.fecha = ?
+      `;
+
+    const params = [fecha];
+
+    if (turno) {
+      query += "AND cc.turno = ?";
+      params.push(turno);
+    }
     // venta de la mañana
-    const [rows] = await pool.query(
-      `SELECT id_categoria,
-      total_por_categoria,
-      total_general
-      FROM corte_caja
-      WHERE fecha = ? AND turno = ?
-      `,
-      [fecha, turno]
-    );
+    const [rows] = await pool.query(query, params);
+
+    const corteNormalizado = normalizarCortePorTurno(rows);
 
     if (rows.length === 0) {
       return res.status(404).json({
         ok: false,
-        msg: "No se encontró corte de caja para la fecha y turno indicados",
+        msg: "No se encontró corte de caja para la fecha indicada",
       });
     }
 
-    // Calucular totales generales
-
-    const totalGeneral = rows.reduce(
-      (acc, row) => acc + Number(row.total_por_categoria),
-      0
-    );
-
-    // // Venta de la tarde
-    // const [afternoon] = await pool.query(
-    //   `SELECT IFNULL(SUM(d.vendido * p.precio),0) AS total_tarde
-    //     FROM despacho d
-    //     JOIN productos p ON d.id_producto = p.id_producto
-    //     WHERE d.turno = 'tarde' AND d.fecha = ?`,
-    //   [fecha]
-    // );
-
-    // Total despacho
-
-    // const totalGeneral =
-    //   Number(morning[0].total_manana) + Number(morning[0].total_tarde);
-
     res.status(200).json({
       ok: true,
-      turno,
       fecha,
-      corte: rows,
-      totalGeneral,
+      ...corteNormalizado,
       // totalTarde: afternoon[0].total_tarde,
       // totalGeneral,
     });
   } catch (error) {
-    console.error("Error al obtener las ventas:", error);
+    console.error("Error en salesCards:", error);
     res.status(500).json({
       ok: false,
       msg: "Error al obtener ventas",
+    });
+  }
+};
+
+export const salesDespacho = async (req, res = response) => {
+  try {
+    const { fecha } = req.body;
+    const turno = resolverTurno(req);
+    // const { fecha = "2025-09-12", turno = "mañana" } = req.body || {};
+
+    // Validar que venga la fecha
+    if (!fecha) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La fecha es obligatoria",
+      });
+    }
+
+    let query = `SELECT
+      d.turno,
+      c.nombre AS categoria,
+      p.nombre AS producto,
+      d.cantidad_inicial,
+      d.ingreso,
+      d.quedan,
+      d.vendido,
+      d.total
+      FROM despacho d
+      JOIN productos p ON d.id_producto = p.id_producto
+      JOIN categorias c ON p.id_categoria = c.id_categoria
+      WHERE d.fecha = ?
+      AND d.vendido > 0 `;
+
+    const params = [fecha];
+
+    if (turno) {
+      query += "AND d.turno = ?";
+      params.push(turno);
+    }
+
+    query += "ORDER BY c.nombre ASC, p.nombre ASC";
+
+    const [rows] = await pool.query(query, params);
+
+    return res.status(200).json({
+      ok: true,
+      despacho: rows,
+    });
+  } catch (error) {
+    console.error("Error en salesDespacho:", error);
+    res.status(500).json({
+      ok: false,
+      msg: "Error al obtener los datos del despacho",
     });
   }
 };
@@ -111,19 +153,27 @@ export const salesDriver = async (req, res = response) => {
   }
 };
 
-// TODO: HACER LAS VENTAS DEL DESPACHO
-export const salesDespacho = async (req, res = response) => {
-  // Obtener ventas del despacho
+// // TODO: HACER LAS VENTAS DEL DESPACHO
+// export const salesDespacho = async (req, res = response) => {
+//   // Obtener ventas del despacho
 
-  try {
-  } catch (error) {}
-};
+//   try {
+//   } catch (error) {}
+// };
 
 export const generarCorteCaja = async (req, res = response) => {
   try {
-    const { fecha, turno } = req.body;
+    const { fecha } = req.body;
+    const turno = resolverTurno(req);
+    if (!fecha || !turno) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La fecha y turno son obligatorios",
+      });
+    }
 
-    const [rows] = await pool.query(
+    // Insertar total_por_categoria
+    await pool.query(
       ` INSERT INTO corte_caja (fecha, turno, id_categoria, total_por_categoria)
       SELECT 
           d.fecha,
@@ -136,6 +186,19 @@ export const generarCorteCaja = async (req, res = response) => {
       GROUP BY d.fecha, d.turno, p.id_categoria
       `,
       [turno, fecha]
+    );
+
+    // Calcular total_general y actualizar todas las filas de ese corte
+    await pool.query(
+      `UPDATE corte_caja cc
+       JOIN (
+         SELECT fecha, turno, SUM(total_por_categoria) AS total_general
+         FROM corte_caja
+         WHERE fecha = ? AND turno = ?
+       ) t
+       ON cc.fecha = t.fecha AND cc.turno = t.turno
+       SET cc.total_general = t.total_general`,
+      [fecha, turno]
     );
     res.json({ ok: true, msg: "Corte de caja generado exitosamente", rows });
   } catch (error) {
