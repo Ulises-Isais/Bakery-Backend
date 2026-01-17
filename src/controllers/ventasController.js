@@ -32,8 +32,21 @@ export const salesCards = async (req, res = response) => {
       query += "AND cc.turno = ?";
       params.push(turno);
     }
-    // venta de la mañana
+
     const [rows] = await pool.query(query, params);
+
+    const totalesPorTurno = rows.reduce((acc, row) => {
+      const turno = row.turno;
+      const total = Number(row.total_por_categoria);
+
+      acc[turno] = (acc[turno] || 0) + total;
+      return acc;
+    }, {});
+
+    const totalGeneral = Object.values(totalesPorTurno).reduce(
+      (acc, total) => acc + total,
+      0
+    );
 
     const corteNormalizado = normalizarCortePorTurno(rows);
 
@@ -48,6 +61,8 @@ export const salesCards = async (req, res = response) => {
       ok: true,
       fecha,
       ...corteNormalizado,
+      totalesPorTurno,
+      totalGeneral,
       // totalTarde: afternoon[0].total_tarde,
       // totalGeneral,
     });
