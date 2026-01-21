@@ -10,6 +10,7 @@ import {
   salesCards,
   salesDespacho,
   salesDriver,
+  salesRepartidoresTable,
 } from "../controllers/ventasController.js";
 
 // Endpoint para obtener card de ventas de repartidores
@@ -20,4 +21,7 @@ router.post("/sales/cards", salesCards);
 
 // Endpoint para obtener datos del despacho
 router.post("/sales/despacho", salesDespacho);
+
+// Endpoint para obtener la tabla de repartidores
+router.post("/sales/repartidores/table", salesRepartidoresTable);
 export default router;
