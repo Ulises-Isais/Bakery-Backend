@@ -9,6 +9,7 @@ import {
   loginUser,
   updatePassword,
   revalidarToken,
+  authMe,
 } from "../controllers/authController.js";
 import { validarCampos } from "../middlewares/validar-campos.js";
 import { validarJWT } from "../middlewares/validar-jwt.js";
@@ -27,7 +28,7 @@ router.post(
     check("password", "La contraseña es obligatoria").not().isEmpty(),
     validarCampos,
   ],
-  loginUser
+  loginUser,
 );
 
 /**
@@ -44,7 +45,7 @@ router.put(
     }),
     validarCampos,
   ],
-  updatePassword
+  updatePassword,
 );
 
 /**
@@ -54,4 +55,15 @@ router.put(
 
 router.get("/renew", validarJWT, revalidarToken);
 
+/**
+ * @route GET /api/auth/me
+ * @description
+ */
+router.get("/me", validarJWT, authMe);
+
+/**
+ * @route POST /api/auth/change-password
+ * @description cambiar la contraseña del usuario
+ */
+router.post("/change-password", updatePassword);
 export default router;

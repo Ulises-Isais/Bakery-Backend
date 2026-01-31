@@ -13,9 +13,10 @@ export const validarJWT = (req, res = response, next) => {
   try {
     const { uid, username, role, turno } = jwt.verify(
       token,
-      process.env.SECRET_JWT_SEED
+      process.env.SECRET_JWT_SEED,
     );
-    req.uid;
+    // Guardar datos del usuario en el request
+    req.uid = uid;
     req.username = username;
     req.role = role;
     req.turno = turno;

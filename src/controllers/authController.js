@@ -2,8 +2,8 @@ import { response } from "express";
 import pool from "../config/db.js";
 import bcrypt from "bcrypt";
 import { generarJWT } from "../helpers/jwt.js";
-//Inicio de sesión
 
+//Inicio de sesión
 export const loginUser = async (req, res = response) => {
   const { username, password } = req.body;
 
@@ -18,7 +18,7 @@ export const loginUser = async (req, res = response) => {
     // Realizar la consulta SQL para encontrar el usuario
     const [results] = await pool.query(
       "SELECT * FROM usuarios WHERE username = ?",
-      [username]
+      [username],
     );
     if (results.length === 0) {
       return res.status(404).json({
@@ -29,7 +29,7 @@ export const loginUser = async (req, res = response) => {
 
     const usuario = results[0];
 
-    //comparar la contraseña con bcrypt
+    // Comparar la contraseña con bcrypt
     const validPasword = await bcrypt.compare(password, usuario.password);
     if (!validPasword) {
       return res.status(401).json({
@@ -43,7 +43,7 @@ export const loginUser = async (req, res = response) => {
       usuario.id,
       usuario.username,
       usuario.role,
-      usuario.turno
+      usuario.turno,
     );
 
     //Login exitoso
@@ -66,6 +66,7 @@ export const loginUser = async (req, res = response) => {
   }
 };
 
+// Revalidar Token JWT
 export const revalidarToken = async (req, res = response) => {
   const { uid, username, role, turno } = req;
 
@@ -94,7 +95,7 @@ export const updatePassword = async (req, res = response) => {
     //Verificar si existe el usuario
     const [results] = await pool.query(
       "SELECT * FROM usuarios WHERE username = ?",
-      [username]
+      [username],
     );
     if (results.length === 0) {
       return res.status(404).json({
@@ -122,6 +123,28 @@ export const updatePassword = async (req, res = response) => {
     return res.status(500).json({
       ok: false,
       msg: "Error en el servidor",
+    });
+  }
+};
+
+export const authMe = async (req, res = response) => {
+  try {
+    const user = {
+      id: req.uid,
+      username: req.username,
+      role: req.role,
+      turno: req.turno ?? null,
+    };
+
+    return res.status(200).json({
+      ok: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Error en /auth/me", error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Error al obtener el usuario autenticado",
     });
   }
 };

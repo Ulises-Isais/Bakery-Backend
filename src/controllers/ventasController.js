@@ -91,8 +91,10 @@ export const salesDespacho = async (req, res = response) => {
 
     let query = `SELECT
       d.turno,
+      c.id_categoria,
       c.nombre AS categoria,
       p.nombre AS producto,
+      p.precio,
       d.cantidad_inicial,
       d.ingreso,
       d.quedan,
@@ -102,7 +104,7 @@ export const salesDespacho = async (req, res = response) => {
       JOIN productos p ON d.id_producto = p.id_producto
       JOIN categorias c ON p.id_categoria = c.id_categoria
       WHERE d.fecha = ?
-      AND d.vendido > 0 `;
+      `;
 
     const params = [fecha];
 
