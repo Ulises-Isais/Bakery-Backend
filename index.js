@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./src/routes/authRoutes.js";
 import ventasRoutes from "./src/routes/ventasRoutes.js";
+import inventoryRoutes from "./src/routes/inventoryRoutes.js";
 
 //Crear el servidor de express
 const app = express();
@@ -21,6 +22,9 @@ app.use("/api/auth", authRoutes);
 
 // Ventas
 app.use("/api", ventasRoutes);
+
+// Inventario
+app.use("/api", inventoryRoutes);
 
 //Escuchar peticiones
 app.listen(process.env.PORT, () => {

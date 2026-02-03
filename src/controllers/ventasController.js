@@ -312,5 +312,3 @@ export const generarCorteCaja = async (req, res = response) => {
     res.status(500).json({ ok: false, msg: "Error al generar el corte" });
   }
 };
-
-const inventory = () => {};
