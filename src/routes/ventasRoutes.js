@@ -7,11 +7,13 @@ import { Router } from "express";
 const router = Router();
 
 import {
+  addCharolas,
   salesCards,
   salesDespacho,
   salesDriver,
   salesRepartidoresTable,
 } from "../controllers/ventasController.js";
+import { validarJWT } from "../middlewares/validar-jwt.js";
 
 // Endpoint para obtener card de ventas de repartidores
 router.get("/sales/driver", salesDriver);
@@ -24,4 +26,7 @@ router.post("/sales/despacho", salesDespacho);
 
 // Endpoint para obtener la tabla de repartidores
 router.post("/sales/repartidores/table", salesRepartidoresTable);
+
+// Endpoint para agregar charolas a la tabla
+router.post("/sales/charolas", validarJWT, addCharolas);
 export default router;

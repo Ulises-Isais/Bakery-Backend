@@ -312,3 +312,37 @@ export const generarCorteCaja = async (req, res = response) => {
     res.status(500).json({ ok: false, msg: "Error al generar el corte" });
   }
 };
+
+export const addCharolas = async (req, res = response) => {
+  try {
+    const { id_repartidor, id_categoria, cantidad } = req.body;
+
+    const fecha = new Date().toISOString().split("T")[0];
+
+    if (!id_repartidor || !id_categoria || !cantidad) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Datos incompletos",
+      });
+    }
+
+    await pool.query(
+      `
+  INSERT INTO charolas (id_categoria, id_repartidor, fecha, cantidad)
+  values (?,?,?,?)
+    `,
+      [id_repartidor, id_categoria, fecha, cantidad],
+    );
+
+    return res.status(201).json({
+      ok: true,
+      msg: "Charolas agregadas correctamente",
+    });
+  } catch (error) {
+    console.error("Error en addCharolas", error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Error al agregar charolas",
+    });
+  }
+};
