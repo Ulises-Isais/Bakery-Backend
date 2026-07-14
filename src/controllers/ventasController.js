@@ -74,7 +74,7 @@ export const salesCards = async (req, res = response) => {
     });
   }
 };
-
+//Mostrar ventas despacho
 export const salesDespacho = async (req, res = response) => {
   try {
     const { fecha } = req.body;
@@ -130,8 +130,8 @@ export const salesDespacho = async (req, res = response) => {
   }
 };
 
+// Mostrar ventas de repartidores
 export const salesDriver = async (req, res = response) => {
-  // Mostrar ventas de repartidores
   try {
     // Consulta SQL: Obtener todas las ventas junto con el nombre del repartidor
     const [rows] = await pool.query(`
@@ -169,7 +169,7 @@ export const salesDriver = async (req, res = response) => {
     });
   }
 };
-
+// Mostrar tabla de repartidores
 export const salesRepartidoresTable = async (req, res = response) => {
   try {
     const { fecha = "2025-09-12" } = req.body;
@@ -266,7 +266,7 @@ export const salesRepartidoresTable = async (req, res = response) => {
     });
   }
 };
-
+// Genera corte de caja
 export const generarCorteCaja = async (req, res = response) => {
   try {
     const { fecha } = req.body;
