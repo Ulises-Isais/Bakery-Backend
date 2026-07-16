@@ -314,35 +314,60 @@ export const generarCorteCaja = async (req, res = response) => {
 };
 
 export const addCharolas = async (req, res = response) => {
+  let connection;
   try {
-    const { id_repartidor, id_categoria, cantidad } = req.body;
+    connection = await pool.getConnection();
+    const { id_repartidor, productos } = req.body;
 
     const fecha = new Date().toISOString().split("T")[0];
 
-    if (!id_repartidor || !id_categoria || !cantidad) {
+    if (
+      !id_repartidor ||
+      !productos ||
+      !Array.isArray(productos) ||
+      productos.length === 0
+    ) {
       return res.status(400).json({
         ok: false,
         msg: "Datos incompletos",
       });
     }
 
-    await pool.query(
-      `
-  INSERT INTO charolas (id_categoria, id_repartidor, fecha, cantidad)
-  values (?,?,?,?)
-    `,
-      [id_repartidor, id_categoria, fecha, cantidad],
-    );
+    await connection.beginTransaction();
+    for (const producto of productos) {
+      await connection.query(
+        `
+        INSERT INTO charolas (id_categoria, id_repartidor, fecha, cantidad)
+        values (?,?,?,?)
+        `,
+        [producto.id_categoria, id_repartidor, fecha, producto.cantidad],
+      );
+    }
+
+    await connection.commit();
 
     return res.status(201).json({
       ok: true,
-      msg: "Charolas agregadas correctamente",
+      msg: `${productos.length} categorias agregadas correctamente`,
     });
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
     console.error("Error en addCharolas", error);
+
     return res.status(500).json({
       ok: false,
       msg: "Error al agregar charolas",
     });
+  } finally {
+    if (connection) {
+      try {
+        connection.release();
+      } catch (error) {
+        console.error("Error liberando la conexión:", error);
+      }
+    }
   }
 };
