@@ -7,6 +7,7 @@ import { Router } from "express";
 const router = Router();
 
 import {
+  getCharolasRepartidor,
   salesCards,
   salesDespacho,
   salesDriver,
@@ -24,4 +25,7 @@ router.post("/sales/despacho", salesDespacho);
 
 // Endpoint para obtener la tabla de repartidores
 router.post("/sales/repartidores/table", salesRepartidoresTable);
+
+// Endpoint para obtener las charolas de los repartidores
+router.post("/sales/charolas/repartidor", getCharolasRepartidor);
 export default router;

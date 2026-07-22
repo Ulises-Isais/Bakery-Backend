@@ -312,3 +312,52 @@ export const generarCorteCaja = async (req, res = response) => {
     res.status(500).json({ ok: false, msg: "Error al generar el corte" });
   }
 };
+
+export const getCharolasRepartidor = async (req, res = response) => {
+  try {
+    const { id_repartidor, fecha } = req.body;
+
+    if (!id_repartidor || !fecha) {
+      return res.status(400).json({
+        ok: false,
+        msg: "El repartidor y la fecha son obligatorios",
+      });
+    }
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+          ch.id_charola,
+          ch.id_categoria,
+          c.nombre AS categoria,
+          ch.cantidad
+      FROM charolas ch
+        INNER JOIN categorias c
+          ON c.id_categoria = ch.id_categoria
+      WHERE ch.id_repartidor = ?
+      AND ch.fecha = ?
+      ORDER BY c.id_categoria ASC;
+      `,
+      [id_repartidor, fecha],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        msg: "El repartidor no tiene charolas registradas para esta fecha",
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      charolas: rows,
+    });
+  } catch (error) {
+    console.error("Error en getCharolasRepartidor:", error);
+
+    return res.status(500).json({
+      ok: false,
+      msg: "Error al obtener las charolas",
+    });
+  }
+};
