@@ -74,7 +74,7 @@ export const salesCards = async (req, res = response) => {
     });
   }
 };
-
+//Mostrar ventas despacho
 export const salesDespacho = async (req, res = response) => {
   try {
     const { fecha } = req.body;
@@ -130,8 +130,8 @@ export const salesDespacho = async (req, res = response) => {
   }
 };
 
+// Mostrar ventas de repartidores
 export const salesDriver = async (req, res = response) => {
-  // Mostrar ventas de repartidores
   try {
     // Consulta SQL: Obtener todas las ventas junto con el nombre del repartidor
     const [rows] = await pool.query(`
@@ -169,7 +169,7 @@ export const salesDriver = async (req, res = response) => {
     });
   }
 };
-
+// Mostrar tabla de repartidores
 export const salesRepartidoresTable = async (req, res = response) => {
   try {
     const { fecha = "2025-09-12" } = req.body;
@@ -266,7 +266,7 @@ export const salesRepartidoresTable = async (req, res = response) => {
     });
   }
 };
-
+// Genera corte de caja
 export const generarCorteCaja = async (req, res = response) => {
   try {
     const { fecha } = req.body;
@@ -359,5 +359,64 @@ export const getCharolasRepartidor = async (req, res = response) => {
       ok: false,
       msg: "Error al obtener las charolas",
     });
+  }
+};
+
+export const addCharolas = async (req, res = response) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const { id_repartidor, productos } = req.body;
+
+    const fecha = new Date().toISOString().split("T")[0];
+
+    if (
+      !id_repartidor ||
+      !productos ||
+      !Array.isArray(productos) ||
+      productos.length === 0
+    ) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Datos incompletos",
+      });
+    }
+
+    await connection.beginTransaction();
+    for (const producto of productos) {
+      await connection.query(
+        `
+        INSERT INTO charolas (id_categoria, id_repartidor, fecha, cantidad)
+        values (?,?,?,?)
+        `,
+        [producto.id_categoria, id_repartidor, fecha, producto.cantidad],
+      );
+    }
+
+    await connection.commit();
+
+    return res.status(201).json({
+      ok: true,
+      msg: `${productos.length} categorias agregadas correctamente`,
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error("Error en addCharolas", error);
+
+    return res.status(500).json({
+      ok: false,
+      msg: "Error al agregar charolas",
+    });
+  } finally {
+    if (connection) {
+      try {
+        connection.release();
+      } catch (error) {
+        console.error("Error liberando la conexión:", error);
+      }
+    }
   }
 };
