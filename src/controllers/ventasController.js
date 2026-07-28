@@ -420,3 +420,68 @@ export const addCharolas = async (req, res = response) => {
     }
   }
 };
+
+export const driverSettlement = async (req, res = response) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+
+    await connection.beginTransaction();
+
+    const { id_repartidor, fecha, total, dinero_pendiente, notas, categorias } =
+      req.body;
+
+    // Validaciones
+
+    if (
+      !id_repartidor ||
+      !fecha ||
+      total === undefined ||
+      !dinero_pendiente === undefined ||
+      notas === undefined ||
+      !Array.isArray(categorias)
+    ) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Faltan datos requeridos.",
+      });
+    }
+
+    if (categorias.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Debe enviar al menos una categoría.",
+      });
+    }
+    // Recorrer categorias
+
+    // Calcular dinero_regresos
+
+    // calcular dinero_cambios
+
+    // INSERT devoluciones
+
+    // UPDATE ventas
+
+    await connection.commit();
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Cierre realizado correctamente.",
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    return res.status(500).json({
+      ok: false,
+      msg: "Error en el servidor.",
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
