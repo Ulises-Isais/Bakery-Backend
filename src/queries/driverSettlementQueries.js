@@ -3,15 +3,14 @@
  */
 
 // Insertar devoluciones
-export const INSERT_DEVOLUCION = `
+export const INSERT_DEVOLUTION = `
     INSERT INTO devoluciones(
-id_devolucion,
 id_repartidor,
-id_categoria ,
+id_categoria,
 fecha,
 cantidad_devuelta,
-cantidad_cambios ,
-dinero_cambios ,
+cantidad_cambios,
+dinero_cambios,
 dinero_regresos,
 extra
 )
@@ -29,3 +28,8 @@ WHERE
     id_repartidor = ?
     AND fecha = ?        
     `;
+
+export const DELETE_DEVOLUTIONS = `
+DELETE FROM devoluciones 
+WHERE id_repartidor = ?
+    AND fecha = ?`;

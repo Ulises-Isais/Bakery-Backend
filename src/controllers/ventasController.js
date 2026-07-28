@@ -2,7 +2,12 @@ import { response } from "express";
 import pool from "../config/db.js";
 import { resolverTurno } from "../helpers/resolverTurno.js";
 import { normalizarCortePorTurno } from "../helpers/normalizarCorte.js";
-
+import { getSettlementPrice } from "../helpers/getSettlementPrice.js";
+import {
+  INSERT_DEVOLUTION,
+  UPDATE_SALE,
+  DELETE_DEVOLUTIONS,
+} from "../queries/driverSettlementQueries.js";
 // Mostrar ventas totales del día
 export const salesCards = async (req, res = response) => {
   try {
@@ -438,7 +443,7 @@ export const driverSettlement = async (req, res = response) => {
       !id_repartidor ||
       !fecha ||
       total === undefined ||
-      !dinero_pendiente === undefined ||
+      dinero_pendiente === undefined ||
       notas === undefined ||
       !Array.isArray(categorias)
     ) {
@@ -454,14 +459,53 @@ export const driverSettlement = async (req, res = response) => {
         msg: "Debe enviar al menos una categoría.",
       });
     }
-    // Recorrer categorias
-
-    // Calcular dinero_regresos
-
-    // calcular dinero_cambios
 
     // INSERT devoluciones
+    await connection.query(DELETE_DEVOLUTIONS, [id_repartidor, fecha]);
 
+    // Recorrer categorias
+
+    for (const categoria of categorias) {
+      const { id_categoria, cantidad_devuelta, cantidad_cambios, extra } =
+        categoria;
+
+      const precio = getSettlementPrice(id_categoria);
+      if (precio === 0) {
+        throw new Error(
+          `No existe un precio para la categoría ${id_categoria}`,
+        );
+      }
+
+      // Calcular dinero_regresos
+      const dinero_regresos = cantidad_devuelta * precio;
+
+      // calcular dinero_cambios
+
+      const dinero_cambios = cantidad_cambios * precio;
+
+      await connection.query(INSERT_DEVOLUTION, [
+        id_repartidor,
+        id_categoria,
+        fecha,
+        cantidad_devuelta,
+        cantidad_cambios,
+        dinero_cambios,
+        dinero_regresos,
+        extra,
+      ]);
+    }
+
+    const [result] = await connection.query(UPDATE_SALE, [
+      total,
+      dinero_pendiente,
+      notas,
+      id_repartidor,
+      fecha,
+    ]);
+
+    if (result.affectedRows === 0) {
+      throw new Error("No se encontró la venta para actualizar.");
+    }
     // UPDATE ventas
 
     await connection.commit();
@@ -474,6 +518,8 @@ export const driverSettlement = async (req, res = response) => {
     if (connection) {
       await connection.rollback();
     }
+
+    console.error(error);
 
     return res.status(500).json({
       ok: false,
