@@ -5,6 +5,7 @@ import ventasRoutes from "./src/routes/ventasRoutes.js";
 import inventoryRoutes from "./src/routes/inventoryRoutes.js";
 import categoriesRoutes from "./src/routes/categoriesRoutes.js";
 import repartidoresRoutes from "./src/routes/repartidoresRoutes.js";
+import dispatchClosingRoutes from "./src/routes/dispatchClosingRoutes.js";
 //Crear el servidor de express
 const app = express();
 
@@ -32,6 +33,9 @@ app.use("/api", categoriesRoutes);
 
 // Repartidores
 app.use("/api", repartidoresRoutes);
+
+// Cierre despacho
+app.use("/api/dispatch-closing", dispatchClosingRoutes);
 //Escuchar peticiones
 app.listen(process.env.PORT, () => {
   console.log("Conexión exitosa a la base de datos");
