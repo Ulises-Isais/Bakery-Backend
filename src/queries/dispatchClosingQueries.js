@@ -41,14 +41,12 @@ export const GET_EXISTING_CLOSING = `
 `;
 
 /**
- * Obtiene el conteo inicial realizado por la trabajadora.
  *
- * Solamente buscamos:
- *
- *   tipo_conteo = trabajador_inicial
- *
- * El detalle contiene la cantidad inicial por categoría
- * y, cuando corresponde, por producto.
+ * Obtener el conteo inicial realizado por la trabajadora.
+ * detalle_conteo_despacho solamente almacena los IDs de categoría
+ * y producto, por lo que los nombres se obtienen mediante JOIN.
+ * LEFT JOIN en productos permite que id_producto sea NULL,
+ * como sucede con Bolillo, que se maneja directamente por categoría.
  */
 export const GET_INITIAL_COUNT = `
     SELECT
@@ -58,16 +56,30 @@ export const GET_INITIAL_COUNT = `
         c.turno,
         c.tipo_conteo,
         c.id_usuario,
-        cd.categoria,
+
+        cd.id_categoria,
+        cat.nombre AS categoria,
+
         cd.id_producto,
-        cd.producto,
+        p.nombre AS producto,
+
         cd.cantidad
+
     FROM detalle_conteo_despacho cd
+
     INNER JOIN conteos_despacho c
         ON c.id_conteo = cd.id_conteo
+
+    INNER JOIN categorias cat
+        ON cat.id_categoria = cd.id_categoria
+
+    LEFT JOIN productos p
+        ON p.id_producto = cd.id_producto
+
     WHERE c.fecha = ?
       AND c.turno = ?
       AND c.tipo_conteo = 'trabajador_inicial'
+
     ORDER BY
         cd.id_categoria,
         cd.id_producto
@@ -201,18 +213,11 @@ export const GET_PENDING_MOVEMENTS = `
 `;
 
 /**
- * Obtiene el conteo final realizado por la trabajadora.
- *
- * El conteo final utiliza el mismo formato que el conteo inicial
- * de la trabajadora:
- *
- *   Bolillo -> categoría
- *   Pieza   -> categoría
- *   Refri   -> producto
- *
- * No intentamos calcular todavía la venta aquí.
- * Solamente obtenemos el dato físico registrado.
+ * Obtener el conteo final realizado por la trabajadora.
+ * Se utiliza la misma estructura que el conteo inicial.
+ * El tipo de conteo cambia a trabajador_final.
  */
+
 export const GET_FINAL_COUNT = `
     SELECT
         cd.id_detalle,
@@ -221,17 +226,152 @@ export const GET_FINAL_COUNT = `
         c.turno,
         c.tipo_conteo,
         c.id_usuario,
-        cd.categoria,
+
+        cd.id_categoria,
+        cat.nombre AS categoria,
+
         cd.id_producto,
-        cd.producto,
+        p.nombre AS producto,
+
         cd.cantidad
+
     FROM detalle_conteo_despacho cd
+
     INNER JOIN conteos_despacho c
         ON c.id_conteo = cd.id_conteo
+
+    INNER JOIN categorias cat
+        ON cat.id_categoria = cd.id_categoria
+
+    LEFT JOIN productos p
+        ON p.id_producto = cd.id_producto
+
     WHERE c.fecha = ?
       AND c.turno = ?
       AND c.tipo_conteo = 'trabajador_final'
+
     ORDER BY
         cd.id_categoria,
         cd.id_producto
+`;
+
+/**
+ * Obtiene los precios necesarios para calcular el importe monetario del cierre
+ *
+ */
+
+export const GET_DISPATCH_PRICES = `
+    SELECT
+        p.id_producto,
+        p.id_categoria,
+        c.nombre AS categoria,
+        p.nombre AS producto,
+        p.precio
+    FROM productos p
+    INNER JOIN categorias c
+        ON c.id_categoria = p.id_categoria
+    ORDER BY
+        p.id_categoria,
+        p.id_producto
+`;
+/**
+ *
+ * @param {*}
+ * @returns Registra el cierre definitivo de un turno de despacho.
+ */
+export const INSERT_DISPATCH_CLOSING = `
+    INSERT INTO cierre_despacho (
+        fecha,
+        turno,
+        id_usuario_trabajadora,
+        id_usuario_cierre,
+        venta_calculada,
+        dinero_esperado,
+        dinero_entregado,
+        diferencia,
+        estado
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+/**
+ *
+ * @param {*} fecha
+ * @param {*} turno
+ * @returns Obtiene los pedidos activos que serán entregados
+ * durante el turno junto con el total pagado y el saldo pendiente.
+ */
+export const GET_DISPATCH_ORDERS = `
+    SELECT
+        pd.id_pedido,
+        pd.fecha,
+        pd.turno,
+        pd.fecha_entrega,
+        pd.hora_entrega,
+        pd.total AS total_pedido,
+
+        COALESCE(SUM(ppd.monto), 0) AS total_pagado,
+
+        pd.total - COALESCE(SUM(ppd.monto), 0) AS saldo_pendiente
+
+    FROM pedidos_despacho pd
+
+    LEFT JOIN pagos_pedido_despacho ppd
+        ON ppd.id_pedido = pd.id_pedido
+
+    WHERE pd.fecha_entrega = ?
+      AND pd.turno = ?
+      AND pd.estado = 'activo'
+
+    GROUP BY
+        pd.id_pedido,
+        pd.fecha,
+        pd.turno,
+        pd.fecha_entrega,
+        pd.hora_entrega,
+        pd.total
+
+    ORDER BY
+        pd.hora_entrega,
+        pd.id_pedido
+`;
+
+/**
+ *
+ * @param {*} fecha
+ * @param {*} turno
+ * @returns Obtiene los pagos de pedidos registrados durante
+ * un turno específico.
+ */
+export const GET_ORDER_PAYMENTS = `
+    SELECT
+        ppd.id_pago,
+        ppd.id_pedido,
+        ppd.monto,
+        ppd.id_usuario,
+        ppd.creado_en
+
+    FROM pagos_pedido_despacho ppd
+
+    WHERE DATE(ppd.creado_en) = ?
+
+      AND (
+            (
+                ? = 'mañana'
+                AND TIME(ppd.creado_en) >= '06:00:00'
+                AND TIME(ppd.creado_en) < '14:00:00'
+            )
+
+            OR
+
+            (
+                ? = 'tarde'
+                AND TIME(ppd.creado_en) >= '14:00:00'
+                AND TIME(ppd.creado_en) < '22:00:00'
+            )
+      )
+
+    ORDER BY
+        ppd.creado_en,
+        ppd.id_pago
 `;

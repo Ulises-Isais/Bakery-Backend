@@ -1,15 +1,20 @@
 import { response } from "express";
-import pool from "../config/db.js";
 
 import { resolverTurno } from "../helpers/resolverTurno.js";
+import { getDispatchClosingPreview } from "../services/dispatchClosing.service.js";
 
-import { GET_EXISTING_CLOSING } from "../queries/dispatchClosingQueries.js";
-
+/**
+ *
+ * @param {*} req
+ * @param {*} res
+ * @returns Obtiene la información necesaria para mostrar el preview
+ */
 export const previewDispatchClosing = async (req, res = response) => {
   try {
     const { fecha } = req.body;
 
     const turno = resolverTurno(req);
+
     if (!fecha) {
       return res.status(400).json({
         ok: false,
@@ -23,14 +28,7 @@ export const previewDispatchClosing = async (req, res = response) => {
         msg: "El turno es obligatorio",
       });
     }
-
-    // Buscar si ya existe un cierre para esta fecha y turno
-    const [existingClosing] = await pool.query(GET_EXISTING_CLOSING, [
-      fecha,
-      turno,
-    ]);
-    console.log("existingClosing", existingClosing);
-
+    const closing = await getDispatchClosingPreview(fecha, turno);
     return res.status(200).json({
       ok: true,
       msg: "Preview de cierre recibido correctamente",
@@ -38,7 +36,7 @@ export const previewDispatchClosing = async (req, res = response) => {
       turno,
       usuario: req.uid,
       role: req.role,
-      existingClosing,
+      closing,
     });
   } catch (error) {
     console.error("Error en previewDispatchClosing", error);
