@@ -1,6 +1,11 @@
 import pool from "../config/db.js";
-import { calculateDispatchAmount } from "../helpers/calculateDispatchAmount.js";
-import { calculateDispatchSold } from "../helpers/calculateDispatchSold.js";
+
+import {
+  calculateDispatchAmount,
+  calculateDispatchSold,
+  summarizeOrderPayments,
+  summarizeOrders,
+} from "../helpers/index.js";
 import {
   GET_CONFIRMED_ADJUSTMENT_MOVEMENTS,
   GET_CONFIRMED_INCOME_MOVEMENTS,
@@ -117,12 +122,16 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
   // Obtiene los pedidos activos del turno
   const [orders] = await pool.query(GET_DISPATCH_ORDERS, [fecha, turno]);
 
+  const ordersSummary = summarizeOrders(orders);
+
   // Obtiene los pagos de pedidos registrados durante el día
   const [orderPayments] = await pool.query(GET_ORDER_PAYMENTS, [
     fecha,
     turno,
     turno,
   ]);
+
+  const orderPaymentSummary = summarizeOrderPayments(orderPayments);
 
   const [prices] = await pool.query(GET_DISPATCH_PRICES);
 
@@ -147,5 +156,7 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
     totalVenta,
     orders,
     orderPayments,
+    orderPaymentSummary,
+    ordersSummary,
   };
 };
