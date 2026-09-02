@@ -1,8 +1,12 @@
+export { calculateCashDifference } from "./calculateCashDifference.js";
 export { calculateDispatchAmount } from "./calculateDispatchAmount.js";
 export { calculateDispatchSold } from "./calculateDispatchSold.js";
+export { calculateExpectedCash } from "./calculateExpectedCash.js";
 export { generarJWT } from "./jwt.js";
 export { getDispatchProductKey } from "./getDispatchProductKey.js";
 export { getSettlementPrice } from "./getSettlementPrice.js";
 export { normalizarCortePorTurno } from "./normalizarCorte.js";
+export { summarizeCashDeliveries } from "./summarizeCashDeliveries.js";
+export { summarizeExpenses } from "./summarizeExpenses.js";
 export { summarizeOrderPayments } from "./summarizeOrderPayments.js";
 export { summarizeOrders } from "./summarizeOrders.js";

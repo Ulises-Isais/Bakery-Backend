@@ -375,3 +375,63 @@ export const GET_ORDER_PAYMENTS = `
         ppd.creado_en,
         ppd.id_pago
 `;
+
+/**
+ *
+ */
+export const GET_CONFIRMED_EXPENSES = `
+  SELECT
+    gd.id_gasto,
+    gd.fecha,
+    gd.turno,
+    gd.concepto,
+    gd.monto,
+    gd.id_usuario,
+    gd.estado
+  FROM gastos_despacho gd
+  WHERE gd.fecha = ?
+    AND gd.turno = ?
+    AND gd.estado = 'confirmado'
+  ORDER BY gd.id_gasto
+`;
+
+export const GET_PENDING_EXPENSES = `
+  SELECT
+    gd.id_gasto,
+    gd.fecha,
+    gd.turno,
+    gd.concepto,
+    gd.monto,
+    gd.id_usuario,
+    gd.estado
+  FROM gastos_despacho gd
+  WHERE gd.fecha = ?
+    AND gd.turno = ?
+    AND gd.estado = 'pendiente'
+  ORDER BY gd.id_gasto
+`;
+
+/**
+ *
+ * @returns Obtiene las entregas de dinero realizadas durante
+ * un turno específico.
+ */
+export const GET_CASH_DELIVERIES = `
+    SELECT
+        evd.id_entrega,
+        evd.fecha_venta,
+        evd.fecha_entrega,
+        evd.turno,
+        evd.monto_entregado,
+        evd.id_usuario_entrega,
+        evd.id_usuario_recibe,
+        evd.estado,
+        evd.observaciones,
+        evd.creado_en
+    FROM entregas_venta_despacho evd
+    WHERE evd.fecha_entrega = ?
+      AND evd.turno = ?
+      AND evd.estado = 'confirmado'
+    ORDER BY
+        evd.id_entrega
+`;

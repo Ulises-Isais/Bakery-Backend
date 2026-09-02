@@ -1,13 +1,19 @@
 import pool from "../config/db.js";
 
 import {
+  calculateCashDifference,
   calculateDispatchAmount,
   calculateDispatchSold,
+  calculateExpectedCash,
+  summarizeCashDeliveries,
+  summarizeExpenses,
   summarizeOrderPayments,
   summarizeOrders,
 } from "../helpers/index.js";
 import {
+  GET_CASH_DELIVERIES,
   GET_CONFIRMED_ADJUSTMENT_MOVEMENTS,
+  GET_CONFIRMED_EXPENSES,
   GET_CONFIRMED_INCOME_MOVEMENTS,
   GET_DISPATCH_ORDERS,
   GET_DISPATCH_PRICES,
@@ -15,6 +21,7 @@ import {
   GET_FINAL_COUNT,
   GET_INITIAL_COUNT,
   GET_ORDER_PAYMENTS,
+  GET_PENDING_EXPENSES,
   GET_PENDING_MOVEMENTS,
 } from "../queries/dispatchClosingQueries.js";
 
@@ -57,11 +64,19 @@ export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
     turno,
   ]);
 
+  const [pendingExpenses] = await pool.query(GET_PENDING_EXPENSES, [
+    fecha,
+    turno,
+  ]);
+
   // No se permite cerrar el turno mientras existan confirmaciones pendientes
   if (pendingMovements.length > 0) {
     throw new Error("Existen movimientos pendientes de confirmación");
   }
 
+  if (pendingExpenses.length > 0) {
+    throw new Error("Existen gastos pendientes de confirmación");
+  }
   const soldProducts = calculateDispatchSold(
     initialCount,
     incomeMovements,
@@ -144,6 +159,34 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
 
   const { sales, totalVenta } = calculateDispatchAmount(soldProducts, prices);
 
+  const [confirmedExpenses] = await pool.query(GET_CONFIRMED_EXPENSES, [
+    fecha,
+    turno,
+  ]);
+
+  const [pendingExpenses] = await pool.query(GET_PENDING_EXPENSES, [
+    fecha,
+    turno,
+  ]);
+
+  const expenseSummary = summarizeExpenses(confirmedExpenses);
+
+  const dineroEsperado = calculateExpectedCash(
+    totalVenta,
+    orderPaymentSummary.dineroRecibidoPedidos,
+    expenseSummary.totalGastos,
+  );
+
+  const [cashDeliveries] = await pool.query(GET_CASH_DELIVERIES, [
+    fecha,
+    turno,
+  ]);
+
+  const cashDeliverySummary = summarizeCashDeliveries(cashDeliveries);
+
+  const dineroEntregado = cashDeliverySummary.dineroEntregado;
+
+  const diferencia = calculateCashDifference(dineroEsperado, dineroEntregado);
   return {
     existingClosing,
     initialCount,
@@ -158,5 +201,12 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
     orderPayments,
     orderPaymentSummary,
     ordersSummary,
+    confirmedExpenses,
+    expenseSummary,
+    pendingExpenses,
+    dineroEsperado,
+    cashDeliverySummary,
+    dineroEntregado,
+    diferencia,
   };
 };
