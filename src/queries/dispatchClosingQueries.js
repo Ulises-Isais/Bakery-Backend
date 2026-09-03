@@ -429,7 +429,7 @@ export const GET_CASH_DELIVERIES = `
         evd.observaciones,
         evd.creado_en
     FROM entregas_venta_despacho evd
-    WHERE evd.fecha_entrega = ?
+    WHERE evd.fecha_venta = ?
       AND evd.turno = ?
       AND evd.estado = 'confirmado'
     ORDER BY

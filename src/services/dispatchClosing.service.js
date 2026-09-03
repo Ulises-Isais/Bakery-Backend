@@ -25,6 +25,13 @@ import {
   GET_PENDING_MOVEMENTS,
 } from "../queries/dispatchClosingQueries.js";
 
+/**
+ *
+ * @param {*} fecha Fecha correspondiente al cierre del despacho.
+ * @param {*} turno Turno que desea cerrar.
+ * @param {*} idUsuarioCierre  Usuario administrador que registra el ciere.
+ * @returns Valida la información del turno y prepara el ciere definitivo del despacho.
+ */
 export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
   const [existingClosing] = await pool.query(GET_EXISTING_CLOSING, [
     fecha,
@@ -88,53 +95,6 @@ export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
 
   const { sales, totalVenta } = calculateDispatchAmount(soldProducts, prices);
 
-  return {
-    fecha,
-    turno,
-    initialCount,
-    incomeMovements,
-    adjustmentMovements,
-    pendingMovements,
-    finalCount,
-    soldProducts,
-    sales,
-    totalVenta,
-  };
-};
-
-/**
- *
- * @returns
- */
-export const getDispatchClosingPreview = async (fecha, turno) => {
-  // Buscar si ya existe un cierre para esta fecha y turno
-  const [existingClosing] = await pool.query(GET_EXISTING_CLOSING, [
-    fecha,
-    turno,
-  ]);
-
-  // Obtener el conteo inicial
-
-  const [initialCount] = await pool.query(GET_INITIAL_COUNT, [fecha, turno]);
-
-  const [incomeMovements] = await pool.query(GET_CONFIRMED_INCOME_MOVEMENTS, [
-    fecha,
-    turno,
-  ]);
-
-  const [adjustmentMovements] = await pool.query(
-    GET_CONFIRMED_ADJUSTMENT_MOVEMENTS,
-    [fecha, turno],
-  );
-
-  const [pendingMovements] = await pool.query(GET_PENDING_MOVEMENTS, [
-    fecha,
-    turno,
-  ]);
-
-  const [finalCount] = await pool.query(GET_FINAL_COUNT, [fecha, turno]);
-
-  // Obtiene los pedidos activos del turno
   const [orders] = await pool.query(GET_DISPATCH_ORDERS, [fecha, turno]);
 
   const ordersSummary = summarizeOrders(orders);
@@ -148,8 +108,132 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
 
   const orderPaymentSummary = summarizeOrderPayments(orderPayments);
 
+  const [cashDeliveries] = await pool.query(GET_CASH_DELIVERIES, [
+    fecha,
+    turno,
+  ]);
+
+  const [confirmedExpenses] = await pool.query(GET_CONFIRMED_EXPENSES, [
+    fecha,
+    turno,
+  ]);
+
+  const expenseSummary = summarizeExpenses(confirmedExpenses);
+
+  const cashDeliverySummary = summarizeCashDeliveries(cashDeliveries);
+
+  const dineroEntregado = cashDeliverySummary.dineroEntregado;
+
+  const dineroEsperado = calculateExpectedCash(
+    totalVenta,
+    orderPaymentSummary.dineroRecibidoPedidos,
+    expenseSummary.totalGastos,
+  );
+  const diferencia = calculateCashDifference(dineroEsperado, dineroEntregado);
+
+  return {
+    fecha,
+    turno,
+
+    initialCount,
+    incomeMovements,
+    adjustmentMovements,
+    pendingMovements,
+    finalCount,
+
+    soldProducts,
+    sales,
+    totalVenta,
+
+    orders,
+    orderPayments,
+    orderPaymentSummary,
+    ordersSummary,
+
+    confirmedExpenses,
+    expenseSummary,
+    pendingExpenses,
+
+    cashDeliveries,
+    cashDeliverySummary,
+    dineroEntregado,
+
+    dineroEsperado,
+    diferencia,
+  };
+};
+
+/**
+ *
+ * @param {*} fecha Fecha del turno que se desea consultar.
+ * @param {*} turno Turno que desea consultar.
+ * @returns Obtiene la información actual del cierre de despacho para mostrar una vista previa sin registrar el cierre.
+ */
+export const getDispatchClosingPreview = async (fecha, turno) => {
+  const data = await getDispatchClosingData(fecha, turno);
+
+  return data;
+};
+
+/**
+ *
+ * @param {*} fecha Fecha correspondiente al turno de despacho.
+ * @param {*} turno Turno del despacho que se desea consultar.
+ * @returns Obtiene y calcula toda la información necesaria para realizar
+ * el cierre de un turno de despacho.
+ */
+const getDispatchClosingData = async (fecha, turno) => {
+  // Buscar si ya existe un cierre para esta fecha y turno
+  const [existingClosing] = await pool.query(GET_EXISTING_CLOSING, [
+    fecha,
+    turno,
+  ]);
+
+  // Obtener el conteo inicial
+
+  const [initialCount] = await pool.query(GET_INITIAL_COUNT, [fecha, turno]);
+
+  // Obtiene los movimientos de ingreso
+  const [incomeMovements] = await pool.query(GET_CONFIRMED_INCOME_MOVEMENTS, [
+    fecha,
+    turno,
+  ]);
+
+  // Obtiene los movimientos de ajuste dentro del despacho
+  const [adjustmentMovements] = await pool.query(
+    GET_CONFIRMED_ADJUSTMENT_MOVEMENTS,
+    [fecha, turno],
+  );
+
+  // Movimientos pendientes de confirmar en despacho
+  const [pendingMovements] = await pool.query(GET_PENDING_MOVEMENTS, [
+    fecha,
+    turno,
+  ]);
+
+  // Conteo final de despacho
+  const [finalCount] = await pool.query(GET_FINAL_COUNT, [fecha, turno]);
+
+  // Obtiene los pedidos activos del turno
+  const [orders] = await pool.query(GET_DISPATCH_ORDERS, [fecha, turno]);
+
+  // Resumen de pedidos por turno
+  const ordersSummary = summarizeOrders(orders);
+
+  // Obtiene los pagos de pedidos registrados durante el día
+  const [orderPayments] = await pool.query(GET_ORDER_PAYMENTS, [
+    fecha,
+    turno,
+    turno,
+  ]);
+
+  // Resumen de pagos de pedidos registrados durante el dia
+  const orderPaymentSummary = summarizeOrderPayments(orderPayments);
+
+  // Obtiene precios del despacho
   const [prices] = await pool.query(GET_DISPATCH_PRICES);
 
+  // Calcula lo vendido durante el turno
   const soldProducts = calculateDispatchSold(
     initialCount,
     incomeMovements,
@@ -158,30 +242,33 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
   );
 
   const { sales, totalVenta } = calculateDispatchAmount(soldProducts, prices);
-
+  // Gastos confirmados dentro de despacho
   const [confirmedExpenses] = await pool.query(GET_CONFIRMED_EXPENSES, [
     fecha,
     turno,
   ]);
-
+  // Gastos pendientes de confirmar durante el turno
   const [pendingExpenses] = await pool.query(GET_PENDING_EXPENSES, [
     fecha,
     turno,
   ]);
-
+  // Resumen de gastos
   const expenseSummary = summarizeExpenses(confirmedExpenses);
 
+  // Calcula el dinero esperado al finalizar turno
   const dineroEsperado = calculateExpectedCash(
     totalVenta,
     orderPaymentSummary.dineroRecibidoPedidos,
     expenseSummary.totalGastos,
   );
 
+  // Obtiene el dinero entregado del turno
   const [cashDeliveries] = await pool.query(GET_CASH_DELIVERIES, [
     fecha,
     turno,
   ]);
 
+  // Resumen de dinero entregado
   const cashDeliverySummary = summarizeCashDeliveries(cashDeliveries);
 
   const dineroEntregado = cashDeliverySummary.dineroEntregado;
@@ -194,17 +281,22 @@ export const getDispatchClosingPreview = async (fecha, turno) => {
     adjustmentMovements,
     pendingMovements,
     finalCount,
+
     soldProducts,
     sales,
     totalVenta,
     orders,
+
     orderPayments,
     orderPaymentSummary,
     ordersSummary,
+
     confirmedExpenses,
     expenseSummary,
     pendingExpenses,
     dineroEsperado,
+
+    cashDeliveries,
     cashDeliverySummary,
     dineroEntregado,
     diferencia,
