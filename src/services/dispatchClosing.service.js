@@ -23,6 +23,7 @@ import {
   GET_ORDER_PAYMENTS,
   GET_PENDING_EXPENSES,
   GET_PENDING_MOVEMENTS,
+  INSERT_DISPATCH_CLOSING,
 } from "../queries/dispatchClosingQueries.js";
 
 /**
@@ -33,48 +34,29 @@ import {
  * @returns Valida la información del turno y prepara el ciere definitivo del despacho.
  */
 export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
-  const [existingClosing] = await pool.query(GET_EXISTING_CLOSING, [
-    fecha,
-    turno,
-  ]);
+  const data = await getDispatchClosingData(fecha, turno);
+
+  const {
+    existingClosing,
+    initialCount,
+    finalCount,
+    pendingExpenses,
+    pendingMovements,
+    totalVenta,
+    dineroEsperado,
+    dineroEntregado,
+    diferencia,
+  } = data;
 
   if (existingClosing.length > 0) {
     throw new Error("El turno ya tiene un cierre registrado");
   }
-
-  const [initialCount] = await pool.query(GET_INITIAL_COUNT, [fecha, turno]);
-
-  const [finalCount] = await pool.query(GET_FINAL_COUNT, [fecha, turno]);
-
   if (initialCount.length === 0) {
     throw new Error("No existe un conteo inicial para este turno");
   }
   if (finalCount.length === 0) {
     throw new Error("No existe un conteo final para este turno");
   }
-
-  // Obtener ingresos confirmados registrados por el administrador
-  const [incomeMovements] = await pool.query(GET_CONFIRMED_INCOME_MOVEMENTS, [
-    fecha,
-    turno,
-  ]);
-
-  // Obtener sobrantes y consumo interno confirmados
-  const [adjustmentMovements] = await pool.query(
-    GET_CONFIRMED_ADJUSTMENT_MOVEMENTS,
-    [fecha, turno],
-  );
-
-  // Movimientos pendientes
-  const [pendingMovements] = await pool.query(GET_PENDING_MOVEMENTS, [
-    fecha,
-    turno,
-  ]);
-
-  const [pendingExpenses] = await pool.query(GET_PENDING_EXPENSES, [
-    fecha,
-    turno,
-  ]);
 
   // No se permite cerrar el turno mientras existan confirmaciones pendientes
   if (pendingMovements.length > 0) {
@@ -84,80 +66,31 @@ export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
   if (pendingExpenses.length > 0) {
     throw new Error("Existen gastos pendientes de confirmación");
   }
-  const soldProducts = calculateDispatchSold(
-    initialCount,
-    incomeMovements,
-    adjustmentMovements,
-    finalCount,
-  );
 
-  const [prices] = await pool.query(GET_DISPATCH_PRICES);
-
-  const { sales, totalVenta } = calculateDispatchAmount(soldProducts, prices);
-
-  const [orders] = await pool.query(GET_DISPATCH_ORDERS, [fecha, turno]);
-
-  const ordersSummary = summarizeOrders(orders);
-
-  // Obtiene los pagos de pedidos registrados durante el día
-  const [orderPayments] = await pool.query(GET_ORDER_PAYMENTS, [
+  const [result] = await pool.query(INSERT_DISPATCH_CLOSING, [
     fecha,
     turno,
-    turno,
-  ]);
-
-  const orderPaymentSummary = summarizeOrderPayments(orderPayments);
-
-  const [cashDeliveries] = await pool.query(GET_CASH_DELIVERIES, [
-    fecha,
-    turno,
-  ]);
-
-  const [confirmedExpenses] = await pool.query(GET_CONFIRMED_EXPENSES, [
-    fecha,
-    turno,
-  ]);
-
-  const expenseSummary = summarizeExpenses(confirmedExpenses);
-
-  const cashDeliverySummary = summarizeCashDeliveries(cashDeliveries);
-
-  const dineroEntregado = cashDeliverySummary.dineroEntregado;
-
-  const dineroEsperado = calculateExpectedCash(
+    initialCount[0].id_usuario,
+    idUsuarioCierre,
     totalVenta,
-    orderPaymentSummary.dineroRecibidoPedidos,
-    expenseSummary.totalGastos,
-  );
-  const diferencia = calculateCashDifference(dineroEsperado, dineroEntregado);
+    dineroEsperado,
+    dineroEntregado,
+    diferencia,
+    "cerrado",
+  ]);
+
+  const idUsuarioTrabajadora = initialCount[0].id_usuario;
+
+  const { insertId } = result;
 
   return {
+    insertId,
     fecha,
     turno,
-
-    initialCount,
-    incomeMovements,
-    adjustmentMovements,
-    pendingMovements,
-    finalCount,
-
-    soldProducts,
-    sales,
+    idUsuarioTrabajadora,
+    idUsuarioCierre,
     totalVenta,
-
-    orders,
-    orderPayments,
-    orderPaymentSummary,
-    ordersSummary,
-
-    confirmedExpenses,
-    expenseSummary,
-    pendingExpenses,
-
-    cashDeliveries,
-    cashDeliverySummary,
     dineroEntregado,
-
     dineroEsperado,
     diferencia,
   };

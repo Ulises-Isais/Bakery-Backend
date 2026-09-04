@@ -1,6 +1,15 @@
 import { Router } from "express";
 import { validarJWT } from "../middlewares/validar-jwt.js";
-import { previewDispatchClosing } from "../controllers/dispatchClosingController.js";
+import {
+  closeDispatchController,
+  previewDispatchClosing,
+} from "../controllers/dispatchClosingController.js";
+import {
+  confirmMovmentController,
+  getPendingMovementsController,
+  rejectMovementController,
+} from "../controllers/dispatchMovementsController.js";
+
 const router = Router();
 
 /**
@@ -11,4 +20,14 @@ const router = Router();
 
 router.post("/preview", validarJWT, previewDispatchClosing);
 
+/**
+ * Cierre del despacho.
+ */
+router.post("/", validarJWT, closeDispatchController);
+
+router.post("/movements/pending", validarJWT, getPendingMovementsController);
+
+router.post("/movement/confirm", validarJWT, confirmMovmentController);
+
+router.post("/movement/reject", validarJWT, rejectMovementController);
 export default router;

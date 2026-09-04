@@ -1,7 +1,10 @@
 import { response } from "express";
 
 import { resolverTurno } from "../helpers/resolverTurno.js";
-import { getDispatchClosingPreview } from "../services/dispatchClosing.service.js";
+import {
+  closeDispatch,
+  getDispatchClosingPreview,
+} from "../services/dispatchClosing.service.js";
 
 /**
  *
@@ -42,6 +45,45 @@ export const previewDispatchClosing = async (req, res = response) => {
     console.error("Error en previewDispatchClosing", error);
 
     return res.status(500).json({
+      ok: false,
+      msg: "Error interno del servidor",
+    });
+  }
+};
+
+export const closeDispatchController = async (req, res = response) => {
+  try {
+    const idUsuarioCierre = req.uid;
+
+    const { fecha } = req.body;
+
+    const turno = resolverTurno(req);
+
+    if (!fecha) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La fecha es obligatoria.",
+      });
+    }
+
+    if (!turno) {
+      return res.status(400).json({
+        ok: false,
+        msg: "El turno es obligatorio.",
+      });
+    }
+
+    const cierre = await closeDispatch(fecha, turno, idUsuarioCierre);
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Cierre realizado correctamente.",
+      cierre,
+    });
+  } catch (error) {
+    console.error("Error en closeDispatchController", error);
+
+    res.status(500).json({
       ok: false,
       msg: "Error interno del servidor",
     });

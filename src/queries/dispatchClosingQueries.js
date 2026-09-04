@@ -212,6 +212,27 @@ export const GET_PENDING_MOVEMENTS = `
         md.id_movimiento
 `;
 
+export const CONFIRM_MOVEMENT = `
+    UPDATE movimientos_despacho 
+    SET
+        estado = 'confirmado',
+        id_usuario_revision = ?,
+        revisado_en = NOW()
+    WHERE 
+        id_movimiento = ?
+        AND estado = 'pendiente'
+`;
+
+export const REJECT_MOVEMENT = `
+    UPDATE movimientos_despacho 
+    SET
+        estado = 'rechazado',
+        id_usuario_revision = ?,
+        revisado_en = NOW()
+    WHERE 
+        id_movimiento = ?
+        AND estado = 'pendiente'
+`;
 /**
  * Obtener el conteo final realizado por la trabajadora.
  * Se utiliza la misma estructura que el conteo inicial.
@@ -289,9 +310,10 @@ export const INSERT_DISPATCH_CLOSING = `
         dinero_esperado,
         dinero_entregado,
         diferencia,
-        estado
+        estado,
+        cerrado_en
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 `;
 
 /**
