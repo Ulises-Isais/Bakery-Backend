@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { AppError } from "../helpers/AppError.js";
 import {
   CONFIRM_MOVEMENT,
   GET_PENDING_MOVEMENTS,
@@ -12,7 +13,7 @@ export const confirmMovement = async (idMovimiento, idUsuarioRevision) => {
   ]);
 
   if (result.affectedRows === 0) {
-    throw new Error("No se pudo ejecutar la confirmación");
+    throw new AppError("No se pudo ejecutar la confirmación", 409);
   }
 
   return {
@@ -28,7 +29,7 @@ export const rejectMovement = async (idMovimiento, idUsuarioRevision) => {
   ]);
 
   if (result.affectedRows === 0) {
-    throw new Error("No se pudo ejecutar el rechazo");
+    throw new AppError("No se pudo ejecutar el rechazo", 409);
   }
 
   return {

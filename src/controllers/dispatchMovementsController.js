@@ -43,7 +43,7 @@ export const getPendingMovementsController = async (req, res = response) => {
   }
 };
 
-export const confirmMovmentController = async (req, res = response) => {
+export const confirmMovementController = async (req, res = response) => {
   try {
     const { idMovimiento } = req.body;
     const idUsuarioRevision = req.uid;
@@ -65,9 +65,9 @@ export const confirmMovmentController = async (req, res = response) => {
   } catch (error) {
     console.error("Error en confirmMovementController:", error);
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       ok: false,
-      msg: "Error interno en el servidor",
+      msg: error.statusCode ? error.message : "Error interno en el servidor",
     });
   }
 };
@@ -94,9 +94,9 @@ export const rejectMovementController = async (req, res = response) => {
   } catch (error) {
     console.error("Error en rejectMovementController:", error);
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       ok: false,
-      msg: "Error interno en el servidor",
+      msg: error.statusCode ? error.message : "Error interno en el servidor",
     });
   }
 };

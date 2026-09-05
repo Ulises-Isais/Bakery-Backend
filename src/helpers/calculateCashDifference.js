@@ -1,9 +1,17 @@
 /**
  *
- * @param {*} dineroEsperado
- * @param {*} dineroEntregado
+ * @param {*} expected
+ * @param {*} delivered
+ * @param {*} existsDelivery
  * @returns Calcula la diferencia entre el dinero esperado y el dinero entregado
  */
-export const calculateCashDifference = (dineroEsperado, dineroEntregado) => {
-  return Number(dineroEsperado) - Number(dineroEntregado);
+export const calculateCashDifference = (
+  expected,
+  delivered,
+  existsDelivery,
+) => {
+  if (!existsDelivery) {
+    return null;
+  }
+  return expected - delivered;
 };

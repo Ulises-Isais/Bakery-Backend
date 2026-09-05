@@ -83,9 +83,9 @@ export const closeDispatchController = async (req, res = response) => {
   } catch (error) {
     console.error("Error en closeDispatchController", error);
 
-    res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       ok: false,
-      msg: "Error interno del servidor",
+      msg: error.statusCode ? error.message : "Error interno del servidor",
     });
   }
 };

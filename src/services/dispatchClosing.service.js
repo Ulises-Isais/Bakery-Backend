@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { AppError } from "../helpers/AppError.js";
 
 import {
   calculateCashDifference,
@@ -44,28 +45,33 @@ export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
     pendingMovements,
     totalVenta,
     dineroEsperado,
+    existeEntrega,
     dineroEntregado,
     diferencia,
   } = data;
 
   if (existingClosing.length > 0) {
-    throw new Error("El turno ya tiene un cierre registrado");
+    throw new AppError("El turno ya tiene un cierre registrado", 409);
   }
   if (initialCount.length === 0) {
-    throw new Error("No existe un conteo inicial para este turno");
+    throw new AppError("No existe un conteo inicial para este turno", 409);
   }
   if (finalCount.length === 0) {
-    throw new Error("No existe un conteo final para este turno");
+    throw new AppError("No existe un conteo final para este turno", 409);
   }
 
   // No se permite cerrar el turno mientras existan confirmaciones pendientes
   if (pendingMovements.length > 0) {
-    throw new Error("Existen movimientos pendientes de confirmación");
+    throw new AppError("Existen movimientos pendientes de confirmación", 409);
   }
 
   if (pendingExpenses.length > 0) {
-    throw new Error("Existen gastos pendientes de confirmación");
+    throw new AppError("Existen gastos pendientes de confirmación", 409);
   }
+
+  const dineroEntregadoRegistro = existeEntrega ? dineroEntregado : null;
+
+  const diferenciaRegistro = existeEntrega ? diferencia : null;
 
   const [result] = await pool.query(INSERT_DISPATCH_CLOSING, [
     fecha,
@@ -74,8 +80,8 @@ export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
     idUsuarioCierre,
     totalVenta,
     dineroEsperado,
-    dineroEntregado,
-    diferencia,
+    dineroEntregadoRegistro,
+    diferenciaRegistro,
     "cerrado",
   ]);
 
@@ -90,9 +96,9 @@ export const closeDispatch = async (fecha, turno, idUsuarioCierre) => {
     idUsuarioTrabajadora,
     idUsuarioCierre,
     totalVenta,
-    dineroEntregado,
+    dineroEntregado: dineroEntregadoRegistro,
     dineroEsperado,
-    diferencia,
+    diferencia: diferenciaRegistro,
   };
 };
 
@@ -204,9 +210,13 @@ const getDispatchClosingData = async (fecha, turno) => {
   // Resumen de dinero entregado
   const cashDeliverySummary = summarizeCashDeliveries(cashDeliveries);
 
-  const dineroEntregado = cashDeliverySummary.dineroEntregado;
+  const { dineroEntregado, existeEntrega } = cashDeliverySummary;
 
-  const diferencia = calculateCashDifference(dineroEsperado, dineroEntregado);
+  const diferencia = calculateCashDifference(
+    dineroEsperado,
+    dineroEntregado,
+    existeEntrega,
+  );
   return {
     existingClosing,
     initialCount,
@@ -232,6 +242,7 @@ const getDispatchClosingData = async (fecha, turno) => {
     cashDeliveries,
     cashDeliverySummary,
     dineroEntregado,
+    existeEntrega,
     diferencia,
   };
 };

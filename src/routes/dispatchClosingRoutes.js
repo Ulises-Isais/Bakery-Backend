@@ -5,7 +5,7 @@ import {
   previewDispatchClosing,
 } from "../controllers/dispatchClosingController.js";
 import {
-  confirmMovmentController,
+  confirmMovementController,
   getPendingMovementsController,
   rejectMovementController,
 } from "../controllers/dispatchMovementsController.js";
@@ -27,7 +27,7 @@ router.post("/", validarJWT, closeDispatchController);
 
 router.post("/movements/pending", validarJWT, getPendingMovementsController);
 
-router.post("/movement/confirm", validarJWT, confirmMovmentController);
+router.post("/movement/confirm", validarJWT, confirmMovementController);
 
 router.post("/movement/reject", validarJWT, rejectMovementController);
 export default router;

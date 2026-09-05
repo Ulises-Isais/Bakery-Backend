@@ -9,5 +9,5 @@ export const summarizeCashDeliveries = (cashDeliveries) => {
     0,
   );
 
-  return { dineroEntregado };
+  return { dineroEntregado, existeEntrega: cashDeliveries.length > 0 };
 };
