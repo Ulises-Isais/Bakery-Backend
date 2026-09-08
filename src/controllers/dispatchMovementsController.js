@@ -36,9 +36,9 @@ export const getPendingMovementsController = async (req, res = response) => {
   } catch (error) {
     console.error("Error en getPendingMovementsController:", error);
 
-    res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       ok: false,
-      msg: "Error interno en el servidor",
+      msg: error.statusCode ? error.message : "Error interno en el servidor",
     });
   }
 };

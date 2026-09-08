@@ -44,9 +44,9 @@ export const previewDispatchClosing = async (req, res = response) => {
   } catch (error) {
     console.error("Error en previewDispatchClosing", error);
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       ok: false,
-      msg: "Error interno del servidor",
+      msg: error.statusCode ? error.message : "Error interno del servidor",
     });
   }
 };
