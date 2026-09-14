@@ -9,6 +9,7 @@ import {
   getPendingMovementsController,
   registerIncomeController,
   rejectMovementController,
+  updateDispatchCountController,
 } from "../controllers/dispatchMovementsController.js";
 
 const router = Router();
@@ -33,4 +34,6 @@ router.post("/movement/confirm", validarJWT, confirmMovementController);
 router.post("/movement/reject", validarJWT, rejectMovementController);
 
 router.post("/movement/income", validarJWT, registerIncomeController);
+
+router.put("/movement/count", validarJWT, updateDispatchCountController);
 export default router;

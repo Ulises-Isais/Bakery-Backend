@@ -5,6 +5,7 @@ import {
   getPendingMovements,
   registerIncome,
   rejectMovement,
+  updateDispatchCount,
 } from "../services/dispatchMovement.service.js";
 
 export const getPendingMovementsController = async (req, res = response) => {
@@ -154,6 +155,48 @@ export const registerIncomeController = async (req, res = response) => {
     });
   } catch (error) {
     console.error("Error en registerIncomeController:", error);
+
+    return res.status(error.statusCode || 500).json({
+      ok: false,
+      msg: error.statusCode ? error.message : "Error interno en el servidor",
+    });
+  }
+};
+
+export const updateDispatchCountController = async (req, res = response) => {
+  try {
+    const { idDetalle, cantidad } = req.body;
+
+    if (!idDetalle) {
+      return res.status(400).json({
+        ok: false,
+        msg: "El id del detalle es obligatorio",
+      });
+    }
+
+    if (cantidad === undefined || cantidad === null) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La cantidad es obligatoria",
+      });
+    }
+
+    if (!Number.isInteger(Number(cantidad)) || Number(cantidad) < 0) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La cantidad debe ser un número mayor o igual a 0",
+      });
+    }
+
+    const count = await updateDispatchCount(idDetalle, Number(cantidad));
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Conteo actualizado correctamente",
+      count,
+    });
+  } catch (error) {
+    console.error("Error en updateDispatchCountController", error);
 
     return res.status(error.statusCode || 500).json({
       ok: false,

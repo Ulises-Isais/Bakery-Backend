@@ -5,6 +5,7 @@ import {
   GET_PENDING_MOVEMENTS,
   INSERT_INCOME_MOVEMENT,
   REJECT_MOVEMENT,
+  UPDATE_DISPATCH_COUNT,
 } from "../queries/dispatchClosingQueries.js";
 
 export const confirmMovement = async (idMovimiento, idUsuarioRevision) => {
@@ -80,5 +81,23 @@ export const registerIncome = async (
     cantidad,
     motivo,
     idUsuario,
+  };
+};
+
+export const updateDispatchCount = async (idDetalle, cantidad) => {
+  const [result] = await pool.query(UPDATE_DISPATCH_COUNT, [
+    cantidad,
+    idDetalle,
+  ]);
+
+  if (result.affectedRows === 0) {
+    throw new AppError(
+      "No se encontró el conteo o no puede ser modificado",
+      404,
+    );
+  }
+  return {
+    idDetalle,
+    cantidad,
   };
 };

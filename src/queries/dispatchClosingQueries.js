@@ -472,3 +472,15 @@ export const INSERT_INCOME_MOVEMENT = `
     )
     VALUES (?, ?, 'ingreso', ?, ?, ?, ?, 'confirmado', ?)
 `;
+
+export const UPDATE_DISPATCH_COUNT = `
+ UPDATE detalle_conteo_despacho cd
+    INNER JOIN conteos_despacho c
+        ON c.id_conteo = cd.id_conteo
+    SET cd.cantidad = ?
+    WHERE cd.id_detalle = ?
+      AND c.tipo_conteo IN (
+          'trabajador_inicial',
+          'trabajador_final'
+      )
+`;
