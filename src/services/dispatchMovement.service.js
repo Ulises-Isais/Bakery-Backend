@@ -3,6 +3,7 @@ import { AppError } from "../helpers/AppError.js";
 import {
   CONFIRM_MOVEMENT,
   GET_PENDING_MOVEMENTS,
+  INSERT_INCOME_MOVEMENT,
   REJECT_MOVEMENT,
 } from "../queries/dispatchClosingQueries.js";
 
@@ -45,4 +46,39 @@ export const getPendingMovements = async (fecha, turno) => {
   ]);
 
   return { pendingMovements };
+};
+
+export const registerIncome = async (
+  fecha,
+  turno,
+  idCategoria,
+  idProducto,
+  cantidad,
+  motivo,
+  idUsuario,
+) => {
+  const [result] = await pool.query(INSERT_INCOME_MOVEMENT, [
+    fecha,
+    turno,
+    idCategoria,
+    idProducto,
+    cantidad,
+    motivo,
+    idUsuario,
+  ]);
+
+  if (result.affectedRows === 0) {
+    throw new AppError("No se pudo registrar el ingreso", 409);
+  }
+
+  return {
+    idMovimiento: result.insertId,
+    fecha,
+    turno,
+    idCategoria,
+    idProducto,
+    cantidad,
+    motivo,
+    idUsuario,
+  };
 };

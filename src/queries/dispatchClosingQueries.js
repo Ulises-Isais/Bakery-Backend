@@ -457,3 +457,18 @@ export const GET_CASH_DELIVERIES = `
     ORDER BY
         evd.id_entrega
 `;
+
+export const INSERT_INCOME_MOVEMENT = `
+    INSERT INTO movimientos_despacho (
+        fecha,
+        turno,
+        tipo_movimiento,
+        id_categoria,
+        id_producto,
+        cantidad,
+        motivo,
+        estado,
+        id_usuario
+    )
+    VALUES (?, ?, 'ingreso', ?, ?, ?, ?, 'confirmado', ?)
+`;

@@ -7,6 +7,7 @@ import {
 import {
   confirmMovementController,
   getPendingMovementsController,
+  registerIncomeController,
   rejectMovementController,
 } from "../controllers/dispatchMovementsController.js";
 
@@ -30,4 +31,6 @@ router.post("/movements/pending", validarJWT, getPendingMovementsController);
 router.post("/movement/confirm", validarJWT, confirmMovementController);
 
 router.post("/movement/reject", validarJWT, rejectMovementController);
+
+router.post("/movement/income", validarJWT, registerIncomeController);
 export default router;

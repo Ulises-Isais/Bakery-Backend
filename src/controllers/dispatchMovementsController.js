@@ -3,6 +3,7 @@ import { resolverTurno } from "../helpers/resolverTurno.js";
 import {
   confirmMovement,
   getPendingMovements,
+  registerIncome,
   rejectMovement,
 } from "../services/dispatchMovement.service.js";
 
@@ -93,6 +94,66 @@ export const rejectMovementController = async (req, res = response) => {
     });
   } catch (error) {
     console.error("Error en rejectMovementController:", error);
+
+    return res.status(error.statusCode || 500).json({
+      ok: false,
+      msg: error.statusCode ? error.message : "Error interno en el servidor",
+    });
+  }
+};
+
+export const registerIncomeController = async (req, res = response) => {
+  try {
+    const { fecha, turno, idCategoria, idProducto, cantidad, motivo } =
+      req.body;
+
+    const idUsuario = req.uid;
+
+    if (!fecha) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La fecha es obligatoria",
+      });
+    }
+
+    if (!turno) {
+      return res.status(400).json({
+        ok: false,
+        msg: "El turno es obligatorio",
+      });
+    }
+
+    if (!idCategoria) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La categoría es obligatoria",
+      });
+    }
+
+    if (!cantidad || cantidad <= 0) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La cantidad debe ser mayor a 0",
+      });
+    }
+
+    const movement = await registerIncome(
+      fecha,
+      turno,
+      idCategoria,
+      idProducto,
+      cantidad,
+      motivo,
+      idUsuario,
+    );
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Ingreso registrado correctamente",
+      movement,
+    });
+  } catch (error) {
+    console.error("Error en registerIncomeController:", error);
 
     return res.status(error.statusCode || 500).json({
       ok: false,
